@@ -3,7 +3,7 @@
 name: mithril-core
 description: Fedora CoreOS with zfs
 base-image: quay.io/fedora/fedora-coreos
-image-version: 44
+image-version: stable
 
 cosign-version: none
 nushell-version: none
