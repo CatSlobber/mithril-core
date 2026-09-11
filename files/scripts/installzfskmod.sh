@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 
-# SPDX-FileCopyrightText: Copyright 2025 Universal Blue
-# SPDX-FileCopyrightText: Copyright 2025-2026 The Secureblue Authors
-#
-# SPDX-License-Identifier: Apache-2.0
-
 set -euo pipefail
 
 KERNEL_VERSION="$(rpm -q "kernel" --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}')"
@@ -17,8 +12,6 @@ echo "ZFS_VERSION==${ZFS_VERSION}"
 dnf install -y --setopt=install_weak_deps=False "kernel-devel-matched-${KERNEL_VERSION}"
 dnf install -y --setopt=install_weak_deps=False autoconf automake gcc pv akmods mock libunwind-devel pam-devel libatomic libtirpc-devel libblkid-devel libuuid-devel libudev-devel openssl-devel libaio-devel libattr-devel elfutils-libelf-devel python3-devel python3-cffi libffi-devel libcurl-devel ncompress python3-setuptools
 
-
-### BUILD zfs
 echo "getting zfs-${ZFS_VERSION}.tar.gz"
 curl -fLsS --retry 5 \
     -O "https://github.com/openzfs/zfs/releases/download/zfs-${ZFS_VERSION}/zfs-${ZFS_VERSION}.tar.gz" \
@@ -33,8 +26,7 @@ zfs_keys=(
 )
 for key in "${zfs_keys[@]}"; do
     curl -fLsS --retry 5 -o "${key}.asc" "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${key}"
-    # Verify that the downloaded GPG key has the expected fingerprint before importing it.
-    # Reference for GPG colon-listing format: https://github.com/gpg/gnupg/blob/master/doc/DETAILS
+
     if ! gpg --show-keys --with-colons "${key}.asc" \
         | awk -F: '$1 == "fpr" || $1 == "fp2" { print $10 }' \
         | grep -Fq "${key}"
@@ -73,23 +65,13 @@ tar -z -x --no-same-owner --no-same-permissions -f "zfs-${ZFS_VERSION}.tar.gz"
 
 cd "zfs-${ZFS_VERSION}"
 
-# SPDX-SnippetBegin
-# SPDX-SnippetCopyrightText: Copyright 2026 ArchZFS Contributors
-#
-# SPDX-License-Identifier: MIT
-# Source: https://github.com/archzfs/archzfs/blob/master/src/zfs-dkms/PKGBUILD.sh#L25
 case "${ZFS_VERSION}" in
     2.4.2|2.4.3)
-        # These releases contain Linux 7.1 compatibility, but their
-        # metadata predates the support marker.
         sed -Ei 's/^Linux-Maximum: (7\.0|99\.99)$/Linux-Maximum: 7.1/' META
         grep -qx 'Linux-Maximum: 7.1' META
         ;;
 esac
-# SPDX-SnippetEnd
 
-# We want to exit if either A or B is false
-# shellcheck disable=SC2015
 ./configure \
         -with-linux="/usr/src/kernels/${KERNEL_VERSION}/" \
         -with-linux-obj="/usr/src/kernels/${KERNEL_VERSION}/" \
